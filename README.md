@@ -4,7 +4,7 @@
 
 ---
 
-## 🚀 Step 1. 이벤트 생성기 설계 (`generator.py`)
+## 🚀 Step 1. 이벤트 생성기 설계 (`src/generator.py`)
 
 사용자가 웹 서비스 내부에서 수행하는 흐름을 최대한 현실적으로 반영할 수 있도록 **4종류의 이벤트**와 가상의 유저 데이터셋을 설계하였습니다.
 
@@ -50,11 +50,11 @@
 
 ```bash
 # 이벤트 생성기 실행 시
-./run.sh python3 generator.py
+./run.sh python3 src/generator.py
 ```
 
 ### 2. 이벤트 생성기 로컬 테스트
 ```bash
-python3 generator.py
+python3 src/generator.py
 ```
 *   콘솔에 포맷팅된 생성 로그가 동시 출력되며, 상세 실행 이력은 [logs/app.log](file:///Users/jueon/Coding/liveklass-event-pipeline-assignment/liveklass-event-pipeline-assignment/logs/app.log)에 함께 누적 저장됩니다.
