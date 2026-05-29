@@ -65,7 +65,7 @@ def generate_event(user_id=None, session_id=None):
     # 3. 이벤트 종류 설정
     event_type = random.choices(EVENT_TYPES, weights=[0.65, 0.20, 0.10, 0.05], k=1)[0]
 
-    # 4. 기본 이벤트 딕셔너리 구성 (event_id는 DB에서 BIGSERIAL로 생성하므로 제외 가능하지만 시뮬레이션을 위해 유지)
+    # 4. 기본 이벤트 딕셔너리 구성
     event = {
         "user_id": user_id,
         "session_id": session_id,
