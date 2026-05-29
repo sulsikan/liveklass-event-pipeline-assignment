@@ -17,12 +17,19 @@
     chmod +x run.sh
     ```
 
-2.  **이벤트 생성기 로컬 실행 테스트**
+2.  **전체 스택 실행**
+    ```bash
+    docker compose up -d --build
+    ```
+    *   PostgreSQL, 이벤트 생성기, Grafana가 함께 올라갑니다.
+    *   이벤트 생성기는 실행 후 자동으로 이벤트를 계속 생성하며, `docker compose stop app`으로 잠시 멈출 수 있습니다.
+
+3.  **이벤트 생성기 로컬 실행 테스트**
     이 프로젝트는 모든 터미널 실행 명령어를 추적하여 로그로 저장하는 `run.sh` 도구를 지원합니다.
     ```bash
     ./run.sh python3 src/generator.py
     ```
-    *   위 명령어를 실행하면 콘솔에 무작위 가상 사용자 로그가 5회 생성 및 출력되며, 실행 내역은 `logs/command_history.log` 및 `logs/app.log` 파일에 안전하게 기록됩니다.
+    *   위 명령어를 실행하면 콘솔에 무작위 가상 사용자 로그가 계속 생성 및 출력되며, 실행 내역은 `logs/command_history.log` 및 `logs/app.log` 파일에 안전하게 기록됩니다.
 
 ---
 
@@ -59,3 +66,23 @@
 
 ### 3. 히스토리 로깅과 변경 최소화
 사용되지 않는 컬럼(`device_type`)을 빠르게 솎아내어 데이터 모델을 단순화했습니다. 또한, 터미널 명령어를 일일이 추적하기 위해 커맨드 래퍼(`run.sh`)를 직접 작성하여, 프로젝트 생명주기 동안 발생한 모든 기동 및 설정 행위가 흔적으로 고스란히 남아 검증에 용이하도록 구성했습니다.
+
+---
+
+## 4. 시각화
+
+### Grafana 대시보드
+Step 5는 Grafana로 구성했습니다. `docker compose up -d` 후 아래 주소로 접속하면 대시보드를 볼 수 있습니다.
+
+- URL: `http://localhost:3000`
+- 계정: `admin`
+- 비밀번호: `admin2026`
+
+### 대시보드 구성
+- `Total Events`
+- `Event Type Distribution`
+- `Hourly Event Trend`
+- `Top Users`
+
+### 분석 쿼리
+`sql/analysis_queries.sql`에 Step 3용 SQL을 따로 모아 두었습니다. 대시보드 패널에도 같은 쿼리를 사용했습니다.
