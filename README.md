@@ -35,7 +35,6 @@
 | `category_name`| VARCHAR | 카테고리 영문명 | `Electronics` |
 | `product_id` | INTEGER (NULL 가능)| 상품 고유 ID (101: Laptop 등) | `101` |
 | `price` | INTEGER (NULL 가능)| 상품 가격 (KRW) | `1200000` |
-| `device_type` | VARCHAR | 접속 기기 종류 (`Mobile`, `Desktop`, `Tablet`) | `Mobile` |
 | `age_group` | VARCHAR | 사용자 연령대 (`10s`, `20s`, `30s`, `40s`, `50s`) | `30s` |
 | `event_time` | TIMESTAMP | 이벤트가 발생한 시간 | `2026-05-28 09:05:26.699` |
 

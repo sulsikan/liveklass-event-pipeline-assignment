@@ -46,7 +46,6 @@ CATEGORIES = {
     }}
 }
 
-DEVICE_TYPES = ["Mobile", "Desktop", "Tablet"]
 AGE_GROUPS = ["10s", "20s", "30s", "40s", "50s"]
 EVENT_TYPES = ["view", "click", "purchase", "error"]
 
@@ -60,8 +59,7 @@ def generate_event(user_id=None, session_id=None):
     if session_id is None:
         session_id = str(uuid.uuid4())
 
-    # 2. 메타 정보 설정 (디바이스, 연령대)
-    device_type = random.choices(DEVICE_TYPES, weights=[0.60, 0.30, 0.10], k=1)[0]
+    # 2. 메타 정보 설정 (연령대)
     age_group = random.choices(AGE_GROUPS, weights=[0.10, 0.35, 0.30, 0.15, 0.10], k=1)[0]
 
     # 3. 이벤트 종류 설정
@@ -76,7 +74,6 @@ def generate_event(user_id=None, session_id=None):
         "category_name": None,
         "product_id": None,
         "price": None,
-        "device_type": device_type,
         "age_group": age_group,
         "event_time": datetime.now(timezone.utc).isoformat()
     }
@@ -122,7 +119,7 @@ if __name__ == "__main__":
         for i in range(1, 6):
             event = generate_event()
             logging.info(
-                f"[이벤트 {i}] 시간={event['event_time']} | 유저={event['user_id']} ({event['age_group']}, {event['device_type']}) | "
+                f"[이벤트 {i}] 시간={event['event_time']} | 유저={event['user_id']} ({event['age_group']}) | "
                 f"타입={event['event_type']} | 카테고리={event['category_name']}({event['category_id']}) | "
                 f"상품={event['product_id']} | 가격={event['price']}"
             )

@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS events (
     category_name   VARCHAR(100),
     product_id      INTEGER NULL,
     price           INTEGER NULL,
-    device_type     VARCHAR(50),
     age_group       VARCHAR(20),
     event_time      TIMESTAMP NOT NULL
 );
