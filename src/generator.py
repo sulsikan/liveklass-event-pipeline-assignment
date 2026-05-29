@@ -4,21 +4,36 @@ import uuid
 import logging
 import os
 import psycopg2
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 # 1. 로깅 및 경로 설정 (DataOps)
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 APP_LOG_FILE = os.path.join(LOG_DIR, "app.log")
 
+KST = timezone(timedelta(hours=9))
+
+
+class KSTFormatter(logging.Formatter):
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=KST)
+        if datefmt:
+            return dt.strftime(datefmt)
+        return dt.strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
+
+
+formatter = KSTFormatter("%(asctime)s [%(levelname)s] %(message)s")
+
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
         logging.StreamHandler(),
         logging.FileHandler(APP_LOG_FILE, encoding="utf-8")
     ]
 )
+
+for handler in logging.getLogger().handlers:
+    handler.setFormatter(formatter)
 
 # 2. 데이터베이스 접속 설정 (Security - 환경 변수 활용)
 DB_HOST = os.getenv("DB_HOST", "localhost")
@@ -77,24 +92,15 @@ def _make_event(user_id, session_id, age_group, event_type, category_id=None, pr
         "user_id": user_id,
         "session_id": session_id,
         "event_type": event_type,
-        "category": None,
         "product_id": None,
         "price": None,
-        "event_time": datetime.now(timezone.utc).isoformat()
+        "event_time": datetime.now(KST).replace(tzinfo=None)
     }
-
-    if category_id is not None:
-        cat_info = CATEGORIES[category_id]
-        event["category"] = cat_info["name"]
 
     if product_id is not None and category_id is not None:
         prod_info = CATEGORIES[category_id]["products"][product_id]
         event["product_id"] = product_id
         event["price"] = prod_info["price"]
-
-    if event_type == "error" and event["category"] is None and random.random() < 0.5:
-        cat_id = random.choice(list(CATEGORIES.keys()))
-        event["category"] = CATEGORIES[cat_id]["name"]
 
     return event
 
@@ -273,8 +279,8 @@ def insert_event(conn, event):
     """
     insert_query = """
     INSERT INTO events (
-        user_id, session_id, event_type, category, product_id, price, event_time
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s);
+        user_id, session_id, event_type, product_id, price, event_time
+    ) VALUES (%s, %s, %s, %s, %s, %s);
     """
     # with 커서 컨텍스트 매니저를 활용한 안전한 리소스 관리
     with conn.cursor() as cur:
@@ -284,7 +290,6 @@ def insert_event(conn, event):
                 event["user_id"],
                 event["session_id"],
                 event["event_type"],
-                event["category"],
                 event["product_id"],
                 event["price"],
                 event["event_time"]
@@ -305,7 +310,7 @@ if __name__ == "__main__":
         logging.critical(f"초기 커넥션 실패로 파이프라인을 종료합니다: {ex}")
         exit(1)
 
-    logging.info("실시간 이벤트 수집 및 데이터베이스 적재를 시작합니다. (Ctrl+C로 종료)")
+    logging.info("실시간 이벤트 수집 및 데이터베이스 적재를 시작합니다.")
     event_count = 0
 
     try:

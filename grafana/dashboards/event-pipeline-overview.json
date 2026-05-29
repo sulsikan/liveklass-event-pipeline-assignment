@@ -148,7 +148,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('minute', event_time) AS time, ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT user_id), 0), 2)::double precision AS avg_events_per_user FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(event_time, '10m'), ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT user_id), 0), 2)::double precision AS avg_events_per_user FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {
@@ -188,7 +188,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(event_time, '1m'), COUNT(*)::double precision AS event_count FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(event_time, '10m'), COUNT(*)::double precision AS event_count FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {
@@ -212,48 +212,8 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 8
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Category Trend",
-      "datasource": {
-        "type": "postgres",
-        "uid": "postgres-events"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(event_time, '1m'), COALESCE(category, 'Unknown') AS metric, COUNT(*)::double precision AS value FROM events WHERE $__timeFilter(event_time) GROUP BY 1, 2 ORDER BY 1;"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
         "y": 8
       }
     },
@@ -268,7 +228,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('minute', event_time) AS time, COUNT(DISTINCT user_id)::double precision AS active_users FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(event_time, '10m'), COUNT(DISTINCT user_id)::double precision AS active_users FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {
@@ -308,7 +268,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('minute', event_time) AS time, ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT session_id), 0), 2)::double precision AS avg_events_per_session FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(event_time, '10m'), ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT session_id), 0), 2)::double precision AS avg_events_per_session FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {

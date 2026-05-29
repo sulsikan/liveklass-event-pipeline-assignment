@@ -1,86 +1,65 @@
-# 간단한 이벤트 로그 파이프라인 구축 프로젝트 (Assignment)
+# liveklass-event-pipeline-assignment
 
-이 프로젝트는 웹 서비스에서 발생하는 가상 사용자 행동 이벤트를 생성하고, 데이터베이스(PostgreSQL)에 적재한 뒤, 이를 분석하고 시각화하는 전체 파이프라인의 구축 과제입니다.
-
----
+웹 서비스에서 발생하는 가상 사용자 행동 이벤트를 생성하고, PostgreSQL에 저장한 뒤, Grafana로 시각화하는 간단한 이벤트 파이프라인입니다.
 
 ## 1. 실행 방법
 
-### 필요한 도구 및 설치
-*   **Docker 및 Docker Compose**: 데이터베이스 및 컨테이너 환경 구축에 사용됩니다.
-*   **Python 3.11 이상**: 로컬에서 이벤트 생성기를 직접 실행하고 테스트할 때 사용됩니다.
+### 필요한 도구
+- Docker
+- Docker Compose
+- Python 3.11 이상
 
-### 실행 명령어 순서
+### 설치 및 실행
+1. 전체 스택 실행
+   ```bash
+   docker compose up -d --build
+   ```
 
-1.  **명령어 통합 로깅 도구 권한 부여 (최초 1회)**
-    ```bash
-    chmod +x run.sh
-    ```
+2. PostgreSQL 접속 확인
+   ```bash
+   docker compose exec db psql -U postgres -d assignment_db
+   ```
 
-2.  **전체 스택 실행**
-    ```bash
-    docker compose up -d --build
-    ```
-    *   PostgreSQL, 이벤트 생성기, Grafana가 함께 올라갑니다.
-    *   이벤트 생성기는 실행 후 자동으로 이벤트를 계속 생성하며, `docker compose stop app`으로 잠시 멈출 수 있습니다.
+3. Grafana 접속
+- URL: `http://localhost:3000`
+- ID: `admin`
+- PW: `admin2026`
 
-3.  **이벤트 생성기 로컬 실행 테스트**
-    이 프로젝트는 모든 터미널 실행 명령어를 추적하여 로그로 저장하는 `run.sh` 도구를 지원합니다.
-    ```bash
-    ./run.sh python3 src/generator.py
-    ```
-    *   위 명령어를 실행하면 콘솔에 무작위 가상 사용자 로그가 계속 생성 및 출력되며, 실행 내역은 `logs/command_history.log` 및 `logs/app.log` 파일에 안전하게 기록됩니다.
-
----
 
 ## 2. 스키마 설명
 
-### 테이블 설계 이유
-*   단순 통째 JSON 방식 대신 정형화된 개별 컬럼 구조를 선택하여, 각 행동 필드에 최적화된 인덱스를 적용하고 SQL 집계 쿼리 분석 속도 및 데이터 정밀도를 극대화했습니다.
-*   에러나 일반 조회 등의 상황에서 불필요한 값을 유연하게 무시할 수 있도록 필수 필드(`user_id`, `session_id`, `event_type`, `event_time`)와 가변 필드(`product_id`, `price` 등)를 분리 설계했습니다.
+`events` 테이블은 이벤트 분석에 필요한 핵심 필드만 남겨 정규화된 형태로 설계했습니다. `event_type`, `product_id`, `price`, `event_time`처럼 집계와 필터링에 자주 쓰이는 값을 컬럼으로 분리해 SQL 분석과 Grafana 시각화가 쉽도록 했습니다.
 
-### 테이블 상세 스키마 정의 (`events`)
-
-| 필드명 | 데이터 타입 | 설명 | 예시 |
-| :--- | :--- | :--- | :--- |
-| `event_id` | BIGSERIAL PK | 데이터베이스 자동 증가 고유 식별값 | `1` |
-| `user_id` | INTEGER | 가상의 정수형 사용자 고유 ID (1~1000) | `482` |
-| `session_id` | VARCHAR | 브라우저 세션 고유 UUID | `b78e1c6b-95bb-41a4-94c0-2f311c6d1d4d` |
-| `event_type` | VARCHAR | 이벤트 종류 (`view`, `click`, `purchase`, `error`) | `purchase` |
-| `category` | VARCHAR | 카테고리 영문명 (예: Electronics, Clothing) | `Electronics` |
-| `product_id` | INTEGER (NULL 가능)| 상품 고유 ID (101: Laptop 등) | `101` |
-| `price` | INTEGER (NULL 가능)| 상품 가격 (KRW) | `1200000` |
-| `event_time` | TIMESTAMP | 이벤트가 발생한 시간 | `2026-05-28 09:05:26.699` |
-
----
+`user_id`와 `session_id`는 사용자 단위, 세션 단위 분석에 필요하고, `product_id`와 `price`는 강의 서비스에서의 탐색 흐름과 구매 전환을 표현하는 데 사용합니다. 인덱스는 시간 필터와 error 비율 조회에 맞춰 `event_time`과 `error` 전용 부분 인덱스로 단순하게 가져갔습니다.
 
 ## 3. 구현하면서 고민한 점
 
-### 1. 사용자 행동 시나리오 기반의 데이터 일관성
-단순 무작위 매핑 대신, 사용자의 실제 행동(조회 -> 클릭 -> 구매) 흐름을 반영하려 노력했습니다. 예를 들어 `purchase` 이벤트가 발생하면 반드시 특정 상품 ID와 실제 매칭 가격이 동반되도록 데이터 무결성을 챙겼으며, 에러 발생 시에는 비즈니스 항목들이 적절히 비워지도록 분기 제어를 정교화했습니다.
+### Step 1. 이벤트 생성기
+가장 많이 고민한 부분은 데이터가 너무 “랜덤”해 보이지 않도록 만드는 일이었습니다. 단일 이벤트만 계속 생성하면 세션 분석이 의미가 약해져서, 한 세션 안에서 `view -> click -> purchase` 같은 흐름이 이어지도록 생성 로직을 바꿨습니다. 그래서 `Average Session Activity`나 `Average Events per User` 같은 지표가 실제 서비스처럼 보이게 했습니다.
 
-### 2. 가독성을 고려한 프로젝트 구조화
-기존에 모든 소스코드가 프로젝트 루트 디렉터리에 노출되어 있어 복잡도가 증가하는 단점이 있었습니다. 이를 소스코드는 `src/` 디렉터리로, 데이터베이스 정의 스키마는 `db/` 디렉터리로 엄격하게 나누어 정리함으로써 평가관이 구조를 쉽게 파악할 수 있도록 리팩터링했습니다.
+### Step 2. 로그 저장
+저장소는 단순 JSON 파일보다 SQL 집계에 유리한 PostgreSQL을 선택했고, 이벤트를 분석할 때 필요한 핵심 필드만 남기도록 스키마를 정리했습니다. 처음에는 도메인 정보를 더 넣을 수도 있었지만, 운영 이벤트를 보는 과제의 기본에 맞추기 위해 컬럼 수를 최소화하는 방향을 택했습니다.
 
-### 3. 히스토리 로깅과 변경 최소화
-사용되지 않는 컬럼(`device_type`)을 빠르게 솎아내어 데이터 모델을 단순화했습니다. 또한, 터미널 명령어를 일일이 추적하기 위해 커맨드 래퍼(`run.sh`)를 직접 작성하여, 프로젝트 생명주기 동안 발생한 모든 기동 및 설정 행위가 흔적으로 고스란히 남아 검증에 용이하도록 구성했습니다.
+### Step 3. 데이터 집계 분석
+Step 3에서는 대표적인 집계 쿼리를 따로 정리해 두었습니다. 전체 추이, 이벤트 타입별 분포, 유저별 총 이벤트 수처럼 바로 확인할 수 있는 쿼리를 중심으로 두고, 시간 버킷은 대시보드와 같은 기준으로 맞춰 분석 결과가 화면과 어긋나지 않도록 했습니다.
 
----
+### Step 4. Docker로 실행 가능하게 만들기
+`docker compose up -d --build` 한 번으로 DB와 앱, Grafana가 같이 올라가도록 구성했습니다. DB 데이터는 Docker volume에 두고 로그만 로컬 폴더에 남겨서, 환경을 다시 띄워도 같은 방식으로 재현할 수 있게 했습니다.
+
+### Step 5. 결과 시각화
+비즈니스 인사이트를 더 풍부하게 보여주는 대시보드를 만들 수도 있었지만, 과제의 기본에 더 충실하기 위해 시스템 운영 이벤트를 확인하는 방향에 집중했습니다. 그래서 추가적인 컬럼 확장은 하지 않았고, Grafana도 운영 관점에서 집계할 만한 지표들 중심으로 구성했습니다. 대시보드는 전체 이벤트 흐름, error 비율, 활성 사용자, 세션 활동 같은 운영 지표가 바로 보이도록 배치했습니다.
 
 ## 4. 시각화
 
-### Grafana 대시보드
-Step 5는 Grafana로 구성했습니다. `docker compose up -d` 후 아래 주소로 접속하면 대시보드를 볼 수 있습니다.
+Grafana 대시보드는 `docker compose up -d` 이후 `http://localhost:3000`에서 확인할 수 있습니다. 주요 패널은 다음과 같습니다.
 
-- URL: `http://localhost:3000`
-- 계정: `admin`
-- 비밀번호: `admin2026`
+- Total Events
+- Error Ratio
+- Event Type Distribution
+- Overall Event Trend
+- Average Events per User
+- Active Users
+- Average Session Activity
+- Top Users
 
-### 대시보드 구성
-- `Total Events`
-- `Event Type Distribution`
-- `Hourly Event Trend`
-- `Top Users`
-
-### 분석 쿼리
-`sql/analysis_queries.sql`에 Step 3용 SQL을 따로 모아 두었습니다. 대시보드 패널에도 같은 쿼리를 사용했습니다.
+분석 쿼리는 `sql/analysis_queries.sql`에 별도로 정리해 두었습니다.

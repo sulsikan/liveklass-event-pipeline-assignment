@@ -6,13 +6,11 @@ CREATE TABLE IF NOT EXISTS events (
     user_id         INTEGER NOT NULL,
     session_id      VARCHAR(100) NOT NULL,
     event_type      VARCHAR(50) NOT NULL,
-    category        VARCHAR(100),
     product_id      INTEGER NULL,
     price           INTEGER NULL,
     event_time      TIMESTAMP NOT NULL
 );
 
--- 자주 조회되거나 분석 쿼리 필터에 사용될 주요 인덱스 설계
+-- 대시보드에서 실제로 자주 쓰는 시간 필터와 error 비율 조회를 위한 인덱스
 CREATE INDEX IF NOT EXISTS idx_events_event_time ON events (event_time);
-CREATE INDEX IF NOT EXISTS idx_events_event_type ON events (event_type);
-CREATE INDEX IF NOT EXISTS idx_events_user_id ON events (user_id);
+CREATE INDEX IF NOT EXISTS idx_events_error_time ON events (event_time) WHERE event_type = 'error';
