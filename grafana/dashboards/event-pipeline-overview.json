@@ -51,14 +51,14 @@
         "textMode": "auto"
       },
       "gridPos": {
-        "h": 5,
+        "h": 4,
         "w": 6,
         "x": 0,
         "y": 0
       }
     },
     {
-      "type": "bargauge",
+      "type": "barchart",
       "title": "Event Type Distribution",
       "datasource": {
         "type": "postgres",
@@ -68,33 +68,31 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT event_type AS metric, COUNT(*)::double precision AS value FROM events GROUP BY event_type ORDER BY value DESC;"
+          "rawSql": "SELECT event_type, COUNT(*) AS event_count FROM events GROUP BY event_type ORDER BY event_count DESC, event_type ASC;"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
           "unit": "short"
         },
         "overrides": []
       },
       "options": {
         "orientation": "horizontal",
-        "displayMode": "basic",
-        "showUnfilled": true,
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
+        "showValues": "auto",
+        "groupWidth": 0.7,
+        "barWidth": 0.97,
+        "barRadius": 0,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
         }
       },
       "gridPos": {
-        "h": 12,
-        "w": 10,
-        "x": 0,
-        "y": 5
+        "h": 8,
+        "w": 18,
+        "x": 6,
+        "y": 0
       }
     },
     {
@@ -133,10 +131,90 @@
         "textMode": "auto"
       },
       "gridPos": {
-        "h": 5,
+        "h": 4,
         "w": 6,
-        "x": 6,
-        "y": 0
+        "x": 0,
+        "y": 4
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Average Events per User",
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres-events"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('minute', event_time) AS time, ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT user_id), 0), 2)::double precision AS avg_events_per_user FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Overall Event Trend",
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres-events"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(event_time, '1m'), COUNT(*)::double precision AS event_count FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 8
       }
     },
     {
@@ -150,7 +228,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(event_time, '1h'), COALESCE(category_name, 'Unknown') AS metric, COUNT(*)::double precision AS value FROM events WHERE $__timeFilter(event_time) GROUP BY 1, 2 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(event_time, '1m'), COALESCE(category, 'Unknown') AS metric, COUNT(*)::double precision AS value FROM events WHERE $__timeFilter(event_time) GROUP BY 1, 2 ORDER BY 1;"
         }
       ],
       "fieldConfig": {
@@ -173,10 +251,10 @@
         }
       },
       "gridPos": {
-        "h": 12,
-        "w": 14,
-        "x": 10,
-        "y": 5
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 8
       }
     },
     {
@@ -190,7 +268,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('hour', event_time) AS time, COUNT(DISTINCT user_id)::double precision AS active_users FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT date_trunc('minute', event_time) AS time, COUNT(DISTINCT user_id)::double precision AS active_users FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {
@@ -213,9 +291,9 @@
         }
       },
       "gridPos": {
-        "h": 10,
+        "h": 9,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 17
       }
     },
@@ -230,7 +308,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('hour', event_time) AS time, ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT session_id), 0), 2)::double precision AS avg_events_per_session FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT date_trunc('minute', event_time) AS time, ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT session_id), 0), 2)::double precision AS avg_events_per_session FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {
@@ -253,10 +331,10 @@
         }
       },
       "gridPos": {
-        "h": 10,
+        "h": 9,
         "w": 12,
-        "x": 12,
-        "y": 17
+        "x": 0,
+        "y": 26
       }
     },
     {
@@ -281,10 +359,10 @@
         "showHeader": true
       },
       "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 27
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 26
       }
     }
   ]

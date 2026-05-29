@@ -6,11 +6,9 @@ CREATE TABLE IF NOT EXISTS events (
     user_id         INTEGER NOT NULL,
     session_id      VARCHAR(100) NOT NULL,
     event_type      VARCHAR(50) NOT NULL,
-    category_id     INTEGER,
-    category_name   VARCHAR(100),
+    category        VARCHAR(100),
     product_id      INTEGER NULL,
     price           INTEGER NULL,
-    age_group       VARCHAR(20),
     event_time      TIMESTAMP NOT NULL
 );
 

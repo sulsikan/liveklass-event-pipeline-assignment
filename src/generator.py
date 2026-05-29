@@ -29,27 +29,40 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "secure_password_2026")
 
 # 3. 데이터 품질 관리 기준 데이터셋 (Data Management)
 CATEGORIES = {
-    1: {"name": "Electronics", "products": {
-        101: {"name": "Laptop", "price": 1200000},
-        102: {"name": "Smartphone", "price": 900000},
-        103: {"name": "Wireless Earbuds", "price": 150000}
+    1: {"name": "Programming", "products": {
+        101: {"name": "Python Basics", "price": 59000},
+        102: {"name": "JavaScript Fundamentals", "price": 69000},
+        103: {"name": "Backend Development", "price": 89000}
     }},
-    2: {"name": "Clothing", "products": {
-        201: {"name": "Hoodie", "price": 59000},
-        202: {"name": "Jeans", "price": 79000},
-        203: {"name": "Sneakers", "price": 120000}
+    2: {"name": "Data Science", "products": {
+        201: {"name": "SQL for Analytics", "price": 49000},
+        202: {"name": "Machine Learning Intro", "price": 79000},
+        203: {"name": "Statistics Essentials", "price": 55000}
     }},
-    3: {"name": "Books", "products": {
-        301: {"name": "SQL Guide", "price": 28000},
-        302: {"name": "Data Pipeline Design", "price": 35000}
+    3: {"name": "Design", "products": {
+        301: {"name": "Figma UI Design", "price": 45000},
+        302: {"name": "UX Research Basics", "price": 52000},
+        303: {"name": "Motion Graphics", "price": 75000}
     }},
-    4: {"name": "Home & Kitchen", "products": {
-        401: {"name": "Coffee Maker", "price": 89000},
-        402: {"name": "Air Fryer", "price": 129000}
+    4: {"name": "Marketing", "products": {
+        401: {"name": "SEO Strategy", "price": 43000},
+        402: {"name": "Performance Marketing", "price": 68000},
+        403: {"name": "Content Marketing", "price": 48000}
     }},
-    5: {"name": "Sports", "products": {
-        501: {"name": "Treadmill", "price": 580000},
-        502: {"name": "Yoga Mat", "price": 25000}
+    5: {"name": "Language", "products": {
+        501: {"name": "English Conversation", "price": 39000},
+        502: {"name": "Japanese Beginner", "price": 42000},
+        503: {"name": "Business Writing", "price": 46000}
+    }},
+    6: {"name": "Sports", "products": {
+        601: {"name": "Home Workout", "price": 25000},
+        602: {"name": "Yoga Basics", "price": 22000},
+        603: {"name": "Running Training", "price": 30000}
+    }},
+    7: {"name": "ETC", "products": {
+        701: {"name": "Productivity Tips", "price": 18000},
+        702: {"name": "Career Planning", "price": 28000},
+        703: {"name": "Personal Finance", "price": 32000}
     }}
 }
 
@@ -64,28 +77,24 @@ def _make_event(user_id, session_id, age_group, event_type, category_id=None, pr
         "user_id": user_id,
         "session_id": session_id,
         "event_type": event_type,
-        "category_id": None,
-        "category_name": None,
+        "category": None,
         "product_id": None,
         "price": None,
-        "age_group": age_group,
         "event_time": datetime.now(timezone.utc).isoformat()
     }
 
     if category_id is not None:
         cat_info = CATEGORIES[category_id]
-        event["category_id"] = category_id
-        event["category_name"] = cat_info["name"]
+        event["category"] = cat_info["name"]
 
     if product_id is not None and category_id is not None:
         prod_info = CATEGORIES[category_id]["products"][product_id]
         event["product_id"] = product_id
         event["price"] = prod_info["price"]
 
-    if event_type == "error" and event["category_id"] is None and random.random() < 0.5:
+    if event_type == "error" and event["category"] is None and random.random() < 0.5:
         cat_id = random.choice(list(CATEGORIES.keys()))
-        event["category_id"] = cat_id
-        event["category_name"] = CATEGORIES[cat_id]["name"]
+        event["category"] = CATEGORIES[cat_id]["name"]
 
     return event
 
@@ -205,7 +214,7 @@ def validate_event(event):
     """
     try:
         # 필수 필드 누락 검사
-        required_fields = ["user_id", "session_id", "event_type", "age_group", "event_time"]
+        required_fields = ["user_id", "session_id", "event_type", "event_time"]
         for field in required_fields:
             if event.get(field) is None:
                 logging.warning(f"[품질 검증 실패] 필수 필드 {field} 누락됨.")
@@ -264,8 +273,8 @@ def insert_event(conn, event):
     """
     insert_query = """
     INSERT INTO events (
-        user_id, session_id, event_type, category_id, category_name, product_id, price, age_group, event_time
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+        user_id, session_id, event_type, category, product_id, price, event_time
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s);
     """
     # with 커서 컨텍스트 매니저를 활용한 안전한 리소스 관리
     with conn.cursor() as cur:
@@ -275,11 +284,9 @@ def insert_event(conn, event):
                 event["user_id"],
                 event["session_id"],
                 event["event_type"],
-                event["category_id"],
-                event["category_name"],
+                event["category"],
                 event["product_id"],
                 event["price"],
-                event["age_group"],
                 event["event_time"]
             )
         )
