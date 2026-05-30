@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: Event Pipeline Postgres
+    type: postgres
+    uid: postgres-events
+    access: proxy
+    url: db:5432
+    user: postgres
+    secureJsonData:
+      password: secure_password_2026
+    jsonData:
+      database: assignment_db
+      sslmode: disable
+      postgresVersion: 1500
+      timescaledb: false
