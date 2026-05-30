@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: pipeline_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secure_password_2026
+      POSTGRES_DB: assignment_db
+    ports:
+      - "5432:5432"
+    volumes:
+      # 초기 스키마 설정을 위한 SQL 매핑 (최초 기동 시 자동 실행)
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/1_schema.sql
+      # 데이터 영속성을 위한 볼륨 매핑
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready를 활용한 완벽한 헬스체크 설정
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d assignment_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  app:
+    build: .
+    container_name: pipeline_app
+    environment:
+      - DB_HOST=db
+      - DB_USER=postgres
+      - DB_PASSWORD=secure_password_2026
+      - DB_NAME=assignment_db
+      - DB_PORT=5432
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # 호스트의 logs 폴더를 매핑하여 로컬에서 실시간 모니터링 가능하도록 지원 (DataOps)
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  grafana:
+    image: grafana/grafana-oss:11.5.0
+    container_name: pipeline_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin2026
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  grafana-data:
