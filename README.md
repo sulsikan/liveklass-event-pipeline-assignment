@@ -219,3 +219,36 @@ Grafana 대시보드는 `docker compose up` 이후 `http://localhost:3000`에서
 - `Average Session Activity` : 시간 구간별 세션 1개당 평균 이벤트 수를 확인합니다.
 - `Top Users` : 이벤트를 가장 많이 발생시킨 상위 사용자를 확인합니다.
 
+## 6. 선택 과제 A. Kubernetes 기초 이해
+
+Step 1 이벤트 생성기 앱을 Kubernetes에 배포한다고 가정하고 `k8s/` 디렉터리에 아래 리소스 manifest를 작성했습니다.
+
+- `k8s/deployment.yaml`
+- `k8s/configmap.yaml`
+- `k8s/secret.yaml`
+- `k8s/pvc.yaml`
+- `k8s/service.yaml`
+
+### (1) 선택한 Kubernetes 리소스의 역할
+
+- `Deployment`  
+이벤트 생성기 Pod를 원하는 개수(현재 1개)로 유지하고, 장애로 Pod가 종료되면 자동으로 재생성합니다.
+
+- `ConfigMap`  
+`DB_HOST`, `DB_NAME`, `DB_PORT`, `PYTHONUNBUFFERED` 같은 일반 설정값을 분리해 코드/이미지 변경 없이 환경별 설정을 바꿀 수 있게 합니다.
+
+- `Secret`  
+`DB_USER`, `DB_PASSWORD` 같은 민감한 연결 정보를 설정과 분리해 관리합니다.
+
+- `PersistentVolumeClaim`  
+`/app/logs` 경로를 영속 볼륨에 연결해 Pod가 재생성되어도 로그 파일이 유지되도록 합니다.
+
+- `Service`  
+클러스터 내부에서 이벤트 생성기 Pod를 고정된 이름으로 접근할 수 있게 하는 네트워크 진입점을 제공합니다.
+
+### (2) Kubernetes 리소스를 선택한 이유
+
+- 이벤트 생성기는 장시간 실행되며 예외 상황에서 자동 복구가 필요하므로 `Deployment`를 사용했습니다.
+- 운영 환경에서는 설정값과 민감정보를 이미지에 고정하지 않는 것이 중요하므로 `ConfigMap`과 `Secret`을 분리했습니다.
+- 본 프로젝트는 로그 기반 운영 모니터링을 포함하므로 컨테이너 재시작 후에도 로그를 보존하기 위해 `PVC`를 추가했습니다.
+- 향후 내부 연계 서비스(배치, 모니터링, 관리자 도구 등)에서 안정적으로 접근할 수 있도록 `Service`를 함께 구성했습니다.
