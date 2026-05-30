@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: event-generator-config
+  labels:
+    app: event-generator
+data:
+  DB_HOST: "postgres-service"
+  DB_NAME: "assignment_db"
+  DB_PORT: "5432"
+  PYTHONUNBUFFERED: "1"
