@@ -3,7 +3,7 @@
   "uid": "event-pipeline-overview",
   "title": "Event Pipeline Overview",
   "tags": ["assignment", "events", "postgres"],
-  "timezone": "browser",
+  "timezone": "Asia/Seoul",
   "schemaVersion": 39,
   "version": 1,
   "refresh": "30s",
@@ -106,7 +106,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE event_type = 'error') / NULLIF(COUNT(*), 0), 2) AS error_ratio FROM events WHERE $__timeFilter(event_time);"
+          "rawSql": "SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE event_type = 'error') / NULLIF(COUNT(*), 0), 2) AS error_ratio FROM events WHERE $__timeFilter(event_time AT TIME ZONE 'Asia/Seoul');"
         }
       ],
       "fieldConfig": {
@@ -148,7 +148,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(event_time, '10m'), ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT user_id), 0), 2)::double precision AS avg_events_per_user FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(event_time AT TIME ZONE 'Asia/Seoul', '10m'), ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT user_id), 0), 2)::double precision AS avg_events_per_user FROM events WHERE $__timeFilter(event_time AT TIME ZONE 'Asia/Seoul') GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {
@@ -188,7 +188,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(event_time, '10m'), COUNT(*)::double precision AS event_count FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(event_time AT TIME ZONE 'Asia/Seoul', '10m'), COUNT(*)::double precision AS event_count FROM events WHERE $__timeFilter(event_time AT TIME ZONE 'Asia/Seoul') GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {
@@ -228,7 +228,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(event_time, '10m'), COUNT(DISTINCT user_id)::double precision AS active_users FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(event_time AT TIME ZONE 'Asia/Seoul', '10m'), COUNT(DISTINCT user_id)::double precision AS active_users FROM events WHERE $__timeFilter(event_time AT TIME ZONE 'Asia/Seoul') GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {
@@ -268,7 +268,7 @@
         {
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(event_time, '10m'), ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT session_id), 0), 2)::double precision AS avg_events_per_session FROM events WHERE $__timeFilter(event_time) GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(event_time AT TIME ZONE 'Asia/Seoul', '10m'), ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT session_id), 0), 2)::double precision AS avg_events_per_session FROM events WHERE $__timeFilter(event_time AT TIME ZONE 'Asia/Seoul') GROUP BY 1 ORDER BY 1;"
         }
       ],
       "fieldConfig": {

@@ -6,21 +6,18 @@ import os
 import psycopg2
 from datetime import datetime, timezone, timedelta
 
-# 1. 로깅 및 경로 설정 (DataOps)
+# 1. 로깅 및 경로 설정
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 APP_LOG_FILE = os.path.join(LOG_DIR, "app.log")
 
+# 로그 시간을 한국 시간으로 출력하기 위해 Formatter 커스터마이징
 KST = timezone(timedelta(hours=9))
-
 
 class KSTFormatter(logging.Formatter):
     def formatTime(self, record, datefmt=None):
         dt = datetime.fromtimestamp(record.created, tz=KST)
-        if datefmt:
-            return dt.strftime(datefmt)
         return dt.strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
-
 
 formatter = KSTFormatter("%(asctime)s [%(levelname)s] %(message)s")
 
@@ -35,56 +32,39 @@ logging.basicConfig(
 for handler in logging.getLogger().handlers:
     handler.setFormatter(formatter)
 
-# 2. 데이터베이스 접속 설정 (Security - 환경 변수 활용)
+# 2. 데이터베이스 접속 설정
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "assignment_db")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "secure_password_2026")
 
-# 3. 데이터 품질 관리 기준 데이터셋 (Data Management)
-CATEGORIES = {
-    1: {"name": "Programming", "products": {
-        101: {"name": "Python Basics", "price": 59000},
-        102: {"name": "JavaScript Fundamentals", "price": 69000},
-        103: {"name": "Backend Development", "price": 89000}
-    }},
-    2: {"name": "Data Science", "products": {
-        201: {"name": "SQL for Analytics", "price": 49000},
-        202: {"name": "Machine Learning Intro", "price": 79000},
-        203: {"name": "Statistics Essentials", "price": 55000}
-    }},
-    3: {"name": "Design", "products": {
-        301: {"name": "Figma UI Design", "price": 45000},
-        302: {"name": "UX Research Basics", "price": 52000},
-        303: {"name": "Motion Graphics", "price": 75000}
-    }},
-    4: {"name": "Marketing", "products": {
-        401: {"name": "SEO Strategy", "price": 43000},
-        402: {"name": "Performance Marketing", "price": 68000},
-        403: {"name": "Content Marketing", "price": 48000}
-    }},
-    5: {"name": "Language", "products": {
-        501: {"name": "English Conversation", "price": 39000},
-        502: {"name": "Japanese Beginner", "price": 42000},
-        503: {"name": "Business Writing", "price": 46000}
-    }},
-    6: {"name": "Sports", "products": {
-        601: {"name": "Home Workout", "price": 25000},
-        602: {"name": "Yoga Basics", "price": 22000},
-        603: {"name": "Running Training", "price": 30000}
-    }},
-    7: {"name": "ETC", "products": {
-        701: {"name": "Productivity Tips", "price": 18000},
-        702: {"name": "Career Planning", "price": 28000},
-        703: {"name": "Personal Finance", "price": 32000}
-    }}
+# 3. 데이터 품질 관리 기준 데이터셋
+COURSE_CATALOG = {
+    101: {"name": "Python Basics", "price": 59000},
+    102: {"name": "JavaScript Fundamentals", "price": 69000},
+    103: {"name": "Backend Development", "price": 89000},
+    201: {"name": "SQL for Analytics", "price": 49000},
+    202: {"name": "Machine Learning Intro", "price": 79000},
+    203: {"name": "Statistics Essentials", "price": 55000},
+    301: {"name": "Figma UI Design", "price": 45000},
+    302: {"name": "UX Research Basics", "price": 52000},
+    303: {"name": "Motion Graphics", "price": 75000},
+    401: {"name": "SEO Strategy", "price": 43000},
+    402: {"name": "Performance Marketing", "price": 68000},
+    403: {"name": "Content Marketing", "price": 48000},
+    501: {"name": "English Conversation", "price": 39000},
+    502: {"name": "Japanese Beginner", "price": 42000},
+    503: {"name": "Business Writing", "price": 46000},
+    601: {"name": "Home Workout", "price": 25000},
+    602: {"name": "Yoga Basics", "price": 22000},
+    603: {"name": "Running Training", "price": 30000},
+    701: {"name": "Productivity Tips", "price": 18000},
+    702: {"name": "Career Planning", "price": 28000},
+    703: {"name": "Personal Finance", "price": 32000}
 }
 
-AGE_GROUPS = ["10s", "20s", "30s", "40s", "50s"]
-EVENT_TYPES = ["view", "click", "purchase", "error"]
-
-def _make_event(user_id, session_id, age_group, event_type, category_id=None, product_id=None):
+def _make_event(user_id, session_id, event_type, product_id=None):
     """
     세션 컨텍스트를 반영한 단일 이벤트를 만듭니다.
     """
@@ -97,8 +77,8 @@ def _make_event(user_id, session_id, age_group, event_type, category_id=None, pr
         "event_time": datetime.now(KST).replace(tzinfo=None)
     }
 
-    if product_id is not None and category_id is not None:
-        prod_info = CATEGORIES[category_id]["products"][product_id]
+    if product_id is not None:
+        prod_info = COURSE_CATALOG[product_id]
         event["product_id"] = product_id
         event["price"] = prod_info["price"]
 
@@ -110,15 +90,11 @@ def choose_session_profile():
     """
     user_id = random.randint(1, 1000)
     session_id = str(uuid.uuid4())
-    age_group = random.choices(AGE_GROUPS, weights=[0.10, 0.35, 0.30, 0.15, 0.10], k=1)[0]
-    category_id = random.choice(list(CATEGORIES.keys()))
-    product_id = random.choice(list(CATEGORIES[category_id]["products"].keys()))
+    product_id = random.choice(list(COURSE_CATALOG.keys()))
 
     return {
         "user_id": user_id,
         "session_id": session_id,
-        "age_group": age_group,
-        "category_id": category_id,
         "product_id": product_id
     }
 
@@ -130,19 +106,17 @@ def generate_session_events():
     session_length = random.choices([1, 2, 3, 4, 5, 6], weights=[0.08, 0.15, 0.25, 0.24, 0.18, 0.10], k=1)[0]
     events = []
 
-    # 세션은 보통 상품 탐색(view)으로 시작합니다.
+    # 세션은 보통 강의 탐색(view)으로 시작합니다.
     events.append(
         _make_event(
             profile["user_id"],
             profile["session_id"],
-            profile["age_group"],
             "view",
-            category_id=profile["category_id"],
             product_id=profile["product_id"]
         )
     )
 
-    # 중간에는 클릭, 추가 조회, 간헐적 에러가 섞일 수 있습니다.
+    # 중간에는 관심 등록(enroll), 결제(payment), 추가 조회, 간헐적 에러가 섞일 수 있습니다.
     for _ in range(session_length - 1):
         roll = random.random()
         if roll < 0.10:
@@ -151,62 +125,62 @@ def generate_session_events():
                 _make_event(
                     profile["user_id"],
                     profile["session_id"],
-                    profile["age_group"],
                     event_type,
-                    category_id=profile["category_id"]
                 )
             )
-        elif roll < 0.55:
-            event_type = "click"
+        elif roll < 0.45:
+            event_type = "enroll"
             if random.random() < 0.70:
                 product_id = profile["product_id"]
             else:
-                product_id = random.choice(list(CATEGORIES[profile["category_id"]]["products"].keys()))
+                product_id = random.choice(list(COURSE_CATALOG.keys()))
             events.append(
                 _make_event(
                     profile["user_id"],
                     profile["session_id"],
-                    profile["age_group"],
                     event_type,
-                    category_id=profile["category_id"],
                     product_id=product_id
                 )
             )
-        elif roll < 0.80:
-            event_type = "view"
-            product_id = random.choice(list(CATEGORIES[profile["category_id"]]["products"].keys()))
+        elif roll < 0.70:
+            event_type = "payment"
             events.append(
                 _make_event(
                     profile["user_id"],
                     profile["session_id"],
-                    profile["age_group"],
                     event_type,
-                    category_id=profile["category_id"],
+                    product_id=profile["product_id"]
+                )
+            )
+        elif roll < 0.90:
+            event_type = "view"
+            product_id = random.choice(list(COURSE_CATALOG.keys()))
+            events.append(
+                _make_event(
+                    profile["user_id"],
+                    profile["session_id"],
+                    event_type,
                     product_id=product_id
                 )
             )
         else:
-            event_type = "purchase"
+            event_type = "payment"
             events.append(
                 _make_event(
                     profile["user_id"],
                     profile["session_id"],
-                    profile["age_group"],
                     event_type,
-                    category_id=profile["category_id"],
                     product_id=profile["product_id"]
                 )
             )
 
-    # 구매가 없었던 세션은 가끔 마지막에 구매로 마무리하게 합니다.
-    if not any(event["event_type"] == "purchase" for event in events) and random.random() < 0.35:
+    # 결제가 없었던 세션은 가끔 마지막에 결제로 마무리하게 합니다.
+    if not any(event["event_type"] == "payment" for event in events) and random.random() < 0.35:
         events.append(
             _make_event(
                 profile["user_id"],
                 profile["session_id"],
-                profile["age_group"],
-                "purchase",
-                category_id=profile["category_id"],
+                "payment",
                 product_id=profile["product_id"]
             )
         )
@@ -231,10 +205,10 @@ def validate_event(event):
             logging.warning(f"[품질 검증 실패] user_id가 정수형이 아님: {type(event['user_id'])}")
             return False
 
-        # 비즈니스 정합성 규칙 검사: purchase인 경우 반드시 product_id와 price가 있어야 함
-        if event["event_type"] == "purchase":
+        # 비즈니스 정합성 규칙 검사: enroll/payment인 경우 반드시 product_id와 price가 있어야 함
+        if event["event_type"] in {"enroll", "payment"}:
             if event["product_id"] is None or event["price"] is None:
-                logging.warning("[품질 검증 실패] purchase 이벤트에 상품 또는 가격 정보가 누락됨.")
+                logging.warning("[품질 검증 실패] enroll/payment 이벤트에 상품 또는 가격 정보가 누락됨.")
                 return False
                 
         return True
