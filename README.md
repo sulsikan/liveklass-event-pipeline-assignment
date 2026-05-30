@@ -202,18 +202,22 @@ ORDER BY 1;
 Grafana 대시보드는 `docker compose up` 이후 `http://localhost:3000`에서 확인할 수 있습니다. 주요 패널은 다음과 같습니다.
 
 <img src="docs/images/grafana-dashboard-01.png" alt="Grafana dashboard overview" width="100%">
+
 - `Total Events` : 현재까지 적재된 전체 이벤트 수를 확인합니다.
 - `Error Ratio` : 전체 이벤트 중 error 이벤트가 차지하는 비율을 확인합니다.
 - `Event Type Distribution` : view, enroll, payment, error 이벤트가 어떤 비중으로 발생했는지 비교합니다.
 
 <img src="docs/images/grafana-dashboard-02.png" alt="Grafana dashboard overview" width="100%">
+
 - `Overall Event Trend` : 시간 흐름에 따른 전체 이벤트 발생 추이를 확인합니다.
 
 <img src="docs/images/grafana-dashboard-03.png" alt="Grafana dashboard overview" width="100%">
+
 - `Average Events per User` : 시간 구간별 사용자 1명당 평균 이벤트 수를 확인합니다.
 - `Active Users` : 시간 구간별 이벤트를 발생시킨 고유 사용자 수를 확인합니다.
 
 <img src="docs/images/grafana-dashboard-04.png" alt="Grafana dashboard overview" width="100%">
+
 - `Average Session Activity` : 시간 구간별 세션 1개당 평균 이벤트 수를 확인합니다.
 - `Top Users` : 이벤트를 가장 많이 발생시킨 상위 사용자를 확인합니다.
 
