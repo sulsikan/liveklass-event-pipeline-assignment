@@ -258,7 +258,7 @@ Step 1 이벤트 생성기 앱을 Kubernetes에 배포한다고 가정하고 `k8
 
 ### (1) AWS 아키텍처 설계 
 
-<img src="docs/images/AWS-architecture-drawio2.png" alt="AWS architecture overview" width="100%">
+<img src="docs/images/AWS-architecture-drawio.png" alt="AWS architecture overview" width="100%">
 
 - `Application Load Balancer` : Grafana 대시보드를 외부 브라우저에서 접근할 수 있도록 퍼블릭 진입점을 ALB로 구성했습니다. 외부 요청은 ALB를 통해서만 내부 서비스로 전달됩니다.
 
