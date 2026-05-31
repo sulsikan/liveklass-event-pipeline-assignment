@@ -14,7 +14,7 @@ services:
       # 데이터 영속성을 위한 볼륨 매핑
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      # pg_isready를 활용한 완벽한 헬스체크 설정
+      # pg_isready를 활용한 헬스체크 설정
       test: [ "CMD-SHELL", "pg_isready -U postgres -d assignment_db" ]
       interval: 5s
       timeout: 5s
@@ -32,7 +32,7 @@ services:
       - DB_PORT=5432
       - PYTHONUNBUFFERED=1
     volumes:
-      # 호스트의 logs 폴더를 매핑하여 로컬에서 실시간 모니터링 가능하도록 지원 (DataOps)
+      # 호스트의 logs 폴더를 매핑하여 로컬에서 실시간 모니터링 가능하도록 지원
       - ./logs:/app/logs
     depends_on:
       db:
