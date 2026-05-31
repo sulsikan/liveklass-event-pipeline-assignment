@@ -59,6 +59,8 @@ COURSE_CATALOG = {
     601: {"name": "Home Workout", "price": 25000},
     602: {"name": "Yoga Basics", "price": 22000},
     603: {"name": "Running Training", "price": 30000},
+    604: {"name": "Stretching Starter", "price": 0},
+    605: {"name": "Home Workout Intro", "price": 0},
     701: {"name": "Productivity Tips", "price": 18000},
     702: {"name": "Career Planning", "price": 28000},
     703: {"name": "Personal Finance", "price": 32000}
@@ -91,11 +93,15 @@ def choose_session_profile():
     user_id = random.randint(1, 1000)
     session_id = str(uuid.uuid4())
     product_id = random.choice(list(COURSE_CATALOG.keys()))
+    course_price = COURSE_CATALOG[product_id]["price"]
+    is_free_course = course_price == 0
 
     return {
         "user_id": user_id,
         "session_id": session_id,
-        "product_id": product_id
+        "product_id": product_id,
+        "course_price": course_price,
+        "is_free_course": is_free_course
     }
 
 def generate_session_events():
@@ -116,10 +122,10 @@ def generate_session_events():
         )
     )
 
-    # 중간에는 관심 등록(enroll), 결제(payment), 추가 조회, 간헐적 에러가 섞일 수 있습니다.
+    # 중간에는 등록(enroll), 결제(payment), 추가 조회(view), 에러(error)가 섞일 수 있습니다.
     for _ in range(session_length - 1):
         roll = random.random()
-        if roll < 0.10:
+        if roll < 0.03:
             event_type = "error"
             events.append(
                 _make_event(
@@ -128,9 +134,9 @@ def generate_session_events():
                     event_type,
                 )
             )
-        elif roll < 0.45:
+        elif roll < 0.27:
             event_type = "enroll"
-            if random.random() < 0.70:
+            if profile["is_free_course"] or random.random() < 0.70:
                 product_id = profile["product_id"]
             else:
                 product_id = random.choice(list(COURSE_CATALOG.keys()))
@@ -142,40 +148,46 @@ def generate_session_events():
                     product_id=product_id
                 )
             )
-        elif roll < 0.70:
-            event_type = "payment"
-            events.append(
-                _make_event(
-                    profile["user_id"],
-                    profile["session_id"],
-                    event_type,
-                    product_id=profile["product_id"]
-                )
-            )
-        elif roll < 0.90:
-            event_type = "view"
-            product_id = random.choice(list(COURSE_CATALOG.keys()))
-            events.append(
-                _make_event(
-                    profile["user_id"],
-                    profile["session_id"],
-                    event_type,
-                    product_id=product_id
-                )
-            )
         else:
-            event_type = "payment"
-            events.append(
-                _make_event(
-                    profile["user_id"],
-                    profile["session_id"],
-                    event_type,
-                    product_id=profile["product_id"]
-                )
-            )
+            if profile["course_price"] > 0:
+                if roll < 0.40:
+                    event_type = "payment"
+                else:
+                    event_type = "view"
+            else:
+                event_type = "view"
 
-    # 결제가 없었던 세션은 가끔 마지막에 결제로 마무리하게 합니다.
-    if not any(event["event_type"] == "payment" for event in events) and random.random() < 0.35:
+            if event_type == "payment":
+                events.append(
+                    _make_event(
+                        profile["user_id"],
+                        profile["session_id"],
+                        event_type,
+                        product_id=profile["product_id"]
+                    )
+                )
+            elif event_type == "enroll":
+                events.append(
+                    _make_event(
+                        profile["user_id"],
+                        profile["session_id"],
+                        event_type,
+                        product_id=profile["product_id"]
+                    )
+                )
+            else:
+                product_id = random.choice(list(COURSE_CATALOG.keys()))
+                events.append(
+                    _make_event(
+                        profile["user_id"],
+                        profile["session_id"],
+                        event_type,
+                        product_id=product_id
+                    )
+                )
+
+    # 유료 강의인 경우에만 결제로 마무리합니다.
+    if profile["course_price"] > 0 and not any(event["event_type"] == "payment" for event in events) and random.random() < 0.08:
         events.append(
             _make_event(
                 profile["user_id"],
@@ -187,7 +199,7 @@ def generate_session_events():
 
     return events
 
-# 4. 데이터 품질 관리 레이어 (Data Management / Data Quality)
+# 4. 데이터 품질 관리 레이어
 def validate_event(event):
     """
     생성된 이벤트가 적합한 스키마 규격을 만족하는지 검증합니다.
@@ -210,13 +222,19 @@ def validate_event(event):
             if event["product_id"] is None or event["price"] is None:
                 logging.warning("[품질 검증 실패] enroll/payment 이벤트에 상품 또는 가격 정보가 누락됨.")
                 return False
+            if event["event_type"] == "payment" and event["price"] == 0:
+                logging.warning("[품질 검증 실패] 무료 강의에 payment 이벤트가 생성됨.")
+                return False
+            if event["event_type"] == "enroll" and event["price"] == 0 and not event["product_id"]:
+                logging.warning("[품질 검증 실패] 무료 강의 enroll 이벤트 정보가 올바르지 않습니다.")
+                return False
                 
         return True
     except Exception as e:
         logging.error(f"이벤트 검증 중 오류 발생: {e}")
         return False
 
-# 5. 복구력 및 재시도 메커니즘 (Software Engineering - Exponential Backoff Retry)
+# 5. 데이터베이스 연결 재시도 로직
 def get_db_connection(max_retries=5, base_delay=2):
     """
     재시도 로직을 적용하여 PostgreSQL 데이터베이스 커넥션을 획득합니다.
@@ -246,7 +264,7 @@ def get_db_connection(max_retries=5, base_delay=2):
     logging.critical("최대 재시도 횟수를 초과하여 데이터베이스 연결에 실패했습니다.")
     raise ConnectionError("데이터베이스에 연결할 수 없습니다.")
 
-# 6. 데이터 영구 적재 로직 (Data Architecture / Software Engineering)
+# 6. 이벤트 데이터 저장
 def insert_event(conn, event):
     """
     컨텍스트 매니저를 통해 리소스 누수 없이 안전하게 이벤트를 삽입합니다.
@@ -277,7 +295,7 @@ if __name__ == "__main__":
     logging.info(f"DB_HOST: {DB_HOST} | DB_NAME: {DB_NAME}")
     logging.info("=========================================")
 
-    # 최초 기동 시 데이터베이스 연결 시도 (Exponential Backoff 적용)
+    # 최초 기동 시 데이터베이스 연결 시도
     try:
         connection = get_db_connection()
     except Exception as ex:
@@ -289,16 +307,16 @@ if __name__ == "__main__":
 
     try:
         while True:
-            # 1. 세션 단위 이벤트 생성
+            # 1) 세션 단위 이벤트 생성
             session_events = generate_session_events()
 
             for raw_event in session_events:
-                # 2. 데이터 품질 검증 계층 통과 (Data Management)
+                # 2) 데이터 품질 검증 계층 통과 (Data Management)
                 if not validate_event(raw_event):
                     logging.warning(f"오염된 이벤트 유입으로 적재가 생략되었습니다: {raw_event}")
                     continue
 
-                # 3. 데이터베이스 적재 (오류 발생 시 자동 복구 로직 적용)
+                # 3) 데이터베이스 적재 (오류 발생 시 자동 복구 로직 적용)
                 try:
                     insert_event(connection, raw_event)
                     event_count += 1
@@ -327,8 +345,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logging.info("사용자 중단 요청(Ctrl+C)을 감지했습니다.")
     finally:
-        # 안전한 데이터베이스 리소스 클린업 (Software Engineering)
+        # 데이터베이스 연결 종료
         if connection:
             connection.close()
             logging.info("데이터베이스 연결을 안전하게 종료하고 리소스를 반환했습니다.")
-        logging.info("파이프라인이 정상적으로 완전히 종료되었습니다.")
+        logging.info("파이프라인이 정상적으로 종료되었습니다.")
