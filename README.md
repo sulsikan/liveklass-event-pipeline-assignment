@@ -5,8 +5,7 @@
 ## 1. 실행 방법
 
 ### 필요한 도구
-- Docker
-- Docker Compose
+- Docker Desktop
 - Python 3.11 이상
 
 ### 설치 및 실행
